@@ -141,3 +141,134 @@ END
 #### Réponse
 
 Aucune.
+
+
+## Exemples
+
+### Exemple fonctionnel
+
+```plantuml
+@startuml
+title Enchère - cas fonctionnel
+ 
+participant "Client\n(×N)" as C
+participant "Serveur" as S
+ 
+autonumber
+ 
+== Connexion ==
+C -> S : ""JOIN alice""
+S --> C : ""OK""
+note over S : attend que tous les joueurs\nde la liste aient rejoint
+ 
+loop pour chaque objet mis en vente
+  == Round ==
+  S --> C : ""ROUND <basePrice> <item>""
+  note over C, S : envoyé à tous les clients
+  loop jusqu'à ce que chaque joueur ait misé, au plus 30 secondes
+    C -> S : ""BID <amount>""
+    S --> C : ""OK""
+  end
+  note over S : seule la plus haute offre\nde chaque client est conservée
+ 
+  == Résultat ==
+  S --> C : ""RESULT <winner> <amount>""
+  note over C, S : envoyé à tous les clients
+end
+ 
+== Fin de la vente ==
+S --> C : ""END""
+note over C, S : envoyé à tous les clients,\npuis connexion fermée par le serveur
+@enduml
+```
+
+### Round sans offre
+
+```plantuml
+@startuml
+title Enchère - personne ne fait d'offre
+ 
+participant "Client\n(×N)" as C
+participant "Serveur" as S
+ 
+autonumber
+ 
+S --> C : ""ROUND 300 PS5""
+note over S : 30 secondes sans offre
+S --> C : ""RESULT NONE""
+note over C, S : objet non vendu,\nle round suivant commence
+S --> C : ""ROUND 20 chemise à carreaux""
+@enduml
+```
+
+### Erreurs à la connexion
+
+```plantuml
+@startuml
+title Enchère - nom déjà utilisé ou non autorisé
+ 
+participant "Client" as C
+participant "Serveur" as S
+ 
+autonumber
+ 
+C -> S : ""JOIN alice""
+S --> C : ""ERROR 1""
+note over S : nom déjà utilisé
+C -> S : ""JOIN eve""
+S --> C : ""ERROR 3""
+note over S : nom absent de la liste des joueurs
+C -> S : ""JOIN bob""
+S --> C : ""OK""
+@enduml
+```
+
+### Erreurs sur les offres
+
+```plantuml
+@startuml
+title Enchère - offre trop basse, puis hors round
+ 
+participant "Client" as C
+participant "Serveur" as S
+ 
+autonumber
+ 
+== Round ==
+S --> C : ""ROUND 100 vase ancien""
+C -> S : ""BID 50""
+S --> C : ""ERROR 5""
+note over S : inférieure au prix de base,\nnon enregistrée
+C -> S : ""BID 110""
+S --> C : ""OK""
+ 
+== Après le round ==
+S --> C : ""RESULT alice 110""
+C -> S : ""BID 200""
+S --> C : ""ERROR 4""
+note over S : aucun round en cours
+@enduml
+```
+
+### Message avant de rejoindre, et message inconnu
+
+```plantuml
+@startuml
+title Enchère - message au mauvais moment ou inconnu
+ 
+participant "Client" as C
+participant "Serveur" as S
+ 
+autonumber
+ 
+C -> S : ""BID 100""
+S --> C : ""ERROR -2""
+note over S : client pas encore rejoint
+C -> S : ""HELLO""
+S --> C : ""ERROR -1""
+note over S : message inconnu,\nla connexion reste ouverte
+C -> S : ""JOIN alice""
+S --> C : ""OK""
+@enduml
+```
+ 
