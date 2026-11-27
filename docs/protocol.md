@@ -147,128 +147,107 @@ Aucune.
 
 ### Exemple fonctionnel
 
-```plantuml
-@startuml
-title Enchère - cas fonctionnel
+
+```mermaid
+sequenceDiagram
+    title Enchère - cas fonctionnel
+    autonumber
+    participant C as Client (×N)
+    participant S as Serveur
  
-participant "Client\n(×N)" as C
-participant "Serveur" as S
+    C->>S: JOIN alice
+    S-->>C: OK
+    Note over S: attend que tous les joueurs<br/>de la liste aient rejoint
  
-autonumber
+    loop pour chaque objet mis en vente
+        S-->>C: ROUND #lt;basePrice#gt; #lt;item#gt;
+        Note over C,S: envoyé à tous les clients
+        loop jusqu'à ce que chaque joueur ait misé, au plus 30 secondes
+            C->>S: BID #lt;amount#gt;
+            S-->>C: OK
+        end
+        Note over S: seule la plus haute offre<br/>de chaque client est conservée
+        S-->>C: RESULT #lt;winner#gt; #lt;amount#gt;
+        Note over C,S: envoyé à tous les clients
+    end
  
-== Connexion ==
-C -> S : ""JOIN alice""
-S --> C : ""OK""
-note over S : attend que tous les joueurs\nde la liste aient rejoint
- 
-loop pour chaque objet mis en vente
-  == Round ==
-  S --> C : ""ROUND <basePrice> <item>""
-  note over C, S : envoyé à tous les clients
-  loop jusqu'à ce que chaque joueur ait misé, au plus 30 secondes
-    C -> S : ""BID <amount>""
-    S --> C : ""OK""
-  end
-  note over S : seule la plus haute offre\nde chaque client est conservée
- 
-  == Résultat ==
-  S --> C : ""RESULT <winner> <amount>""
-  note over C, S : envoyé à tous les clients
-end
- 
-== Fin de la vente ==
-S --> C : ""END""
-note over C, S : envoyé à tous les clients,\npuis connexion fermée par le serveur
-@enduml
+    S-->>C: END
+    Note over C,S: envoyé à tous les clients,<br/>puis connexion fermée par le serveur
 ```
 
 ### Round sans offre
 
-```plantuml
-@startuml
-title Enchère - personne ne fait d'offre
+```mermaid
+sequenceDiagram
+    title Enchère - personne ne fait d'offre
+    autonumber
+    participant C as Client (×N)
+    participant S as Serveur
  
-participant "Client\n(×N)" as C
-participant "Serveur" as S
- 
-autonumber
- 
-S --> C : ""ROUND 300 PS5""
-note over S : 30 secondes sans offre
-S --> C : ""RESULT NONE""
-note over C, S : objet non vendu,\nle round suivant commence
-S --> C : ""ROUND 20 chemise à carreaux""
-@enduml
+    S-->>C: ROUND 300 PS5
+    Note over S: 30 secondes sans offre
+    S-->>C: RESULT NONE
+    Note over C,S: objet non vendu,<br/>le round suivant commence
+    S-->>C: ROUND 20 chemise à carreaux
 ```
 
 ### Erreurs à la connexion
 
-```plantuml
-@startuml
-title Enchère - nom déjà utilisé ou non autorisé
+```mermaid
+sequenceDiagram
+    title Enchère - nom déjà utilisé ou non autorisé
+    autonumber
+    participant C as Client
+    participant S as Serveur
  
-participant "Client" as C
-participant "Serveur" as S
- 
-autonumber
- 
-C -> S : ""JOIN alice""
-S --> C : ""ERROR 1""
-note over S : nom déjà utilisé
-C -> S : ""JOIN eve""
-S --> C : ""ERROR 3""
-note over S : nom absent de la liste des joueurs
-C -> S : ""JOIN bob""
-S --> C : ""OK""
-@enduml
+    C->>S: JOIN alice
+    S-->>C: ERROR 1
+    Note over S: nom déjà utilisé
+    C->>S: JOIN eve
+    S-->>C: ERROR 3
+    Note over S: nom absent de la liste des joueurs
+    C->>S: JOIN bob
+    S-->>C: OK
 ```
 
 ### Erreurs sur les offres
 
-```plantuml
-@startuml
-title Enchère - offre trop basse, puis hors round
+```mermaid
+sequenceDiagram
+    title Enchère - offre trop basse, puis hors round
+    autonumber
+    participant C as Client
+    participant S as Serveur
  
-participant "Client" as C
-participant "Serveur" as S
+    S-->>C: ROUND 100 vase ancien
+    C->>S: BID 50
+    S-->>C: ERROR 5
+    Note over S: inférieure au prix de base,<br/>non enregistrée
+    C->>S: BID 110
+    S-->>C: OK
  
-autonumber
- 
-== Round ==
-S --> C : ""ROUND 100 vase ancien""
-C -> S : ""BID 50""
-S --> C : ""ERROR 5""
-note over S : inférieure au prix de base,\nnon enregistrée
-C -> S : ""BID 110""
-S --> C : ""OK""
- 
-== Après le round ==
-S --> C : ""RESULT alice 110""
-C -> S : ""BID 200""
-S --> C : ""ERROR 4""
-note over S : aucun round en cours
-@enduml
+    S-->>C: RESULT alice 110
+    C->>S: BID 200
+    S-->>C: ERROR 4
+    Note over S: aucun round en cours
 ```
 
 ### Message avant de rejoindre, et message inconnu
 
-```plantuml
-@startuml
-title Enchère - message au mauvais moment ou inconnu
+```mermaid
+sequenceDiagram
+    title Enchère - message au mauvais moment ou inconnu
+    autonumber
+    participant C as Client
+    participant S as Serveur
  
-participant "Client" as C
-participant "Serveur" as S
- 
-autonumber
- 
-C -> S : ""BID 100""
-S --> C : ""ERROR -2""
-note over S : client pas encore rejoint
-C -> S : ""HELLO""
-S --> C : ""ERROR -1""
-note over S : message inconnu,\nla connexion reste ouverte
-C -> S : ""JOIN alice""
-S --> C : ""OK""
-@enduml
+    C->>S: BID 100
+    S-->>C: ERROR -2
+    Note over S: client pas encore rejoint
+    C->>S: HELLO
+    S-->>C: ERROR -1
+    Note over S: message inconnu,<br/>la connexion reste ouverte
+    C->>S: JOIN alice
+    S-->>C: OK
 ```
- 
+  
